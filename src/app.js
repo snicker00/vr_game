@@ -157,8 +157,7 @@ class App {
 
         const self = this;
 
-        // TASK 1. Add teleports
-        this.teleports = [];
+        // TASK 1.1 Create teleports and add them to the scene
 
 
         this.setupXR();
@@ -215,10 +214,9 @@ class App {
 
         function onSelectStart() {
             this.userData.selectPressed = true;
-            // TASK 1. Show teleports
-            if (this.userData.teleport) {
-                self.player.object.position.copy(this.userData.teleport.position);
-                self.teleports.forEach(teleport => teleport.fadeOut(0.5));
+            // TASK 1.6 On select press move to the selected teleport
+            if (false) {
+
             } else if (this.userData.marker.visible) {
                 const pos = this.userData.marker.position;
                 console.log(`${pos.x.toFixed(3)}, ${pos.y.toFixed(3)}, ${pos.z.toFixed(3)}`);
@@ -231,12 +229,13 @@ class App {
 
         function onSqueezeStart() {
             this.userData.squeezePressed = true;
-            // TASK 1. Show teleports
+            // TASK 1.2 Display teleports when squeeze button is pressed
+
         }
 
         function onSqueezeEnd() {
             this.userData.squeezePressed = false;
-            // TASK 1. Hide teleports
+            // TASK 1.3 Hide teleports when squeeze button is released
 
         }
 
@@ -252,8 +251,8 @@ class App {
         })
 
         this.collisionObjects = [this.navmesh];
-        // TASK 1. Add teleports to the collision objects
-        this.teleports.forEach( teleport => self.collisionObjects.push(teleport.children[0]) );
+        // TASK 1.5.1 Add teleports cylinders to the collisionObjects
+
     }
 
     intersectObjects(controller) {
@@ -261,8 +260,11 @@ class App {
         const line = controller.getObjectByName('ray');
         this.workingMatrix.identity().extractRotation(controller.matrixWorld);
 
-        this.raycaster.ray.origin.setFromMatrixPosition(controller.matrixWorld);
-        this.raycaster.ray.direction.set(0, 0, -1).applyMatrix4(this.workingMatrix);
+        this.raycaster.ray.origin
+            .setFromMatrixPosition(controller.matrixWorld);
+        this.raycaster.ray.direction
+            .set(0, 0, -1)
+            .applyMatrix4(this.workingMatrix);
 
         const intersects = this.raycaster.intersectObjects(this.collisionObjects);
         const marker = controller.userData.marker;
@@ -280,7 +282,8 @@ class App {
                 marker.position.copy(intersect.point);
                 marker.visible = true;
             }
-            // TASK 1. Store intersected teleport to the controller user data
+            // TASK 1.5.2 Highlight and store intersected teleport
+
 
         }
 
@@ -325,7 +328,8 @@ class App {
         this.stats.update();
 
         if (this.renderer.xr.isPresenting) {
-            // TASK 1. Update teleport
+            // TASK 1.4 Redraw teleports with update method
+
 
             this.controllers.forEach(controller => {
                 self.intersectObjects(controller);
