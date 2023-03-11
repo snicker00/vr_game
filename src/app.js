@@ -11,6 +11,7 @@ import {VRButton} from "./utils/VRButton";
 import {Player} from "./models/Player";
 import {XRControllerModelFactory} from "three/addons/webxr/XRControllerModelFactory";
 import {TeleportMesh} from "./models/TeleportMesh";
+import {Interactable} from "./utils/Interactable";
 
 class App {
     constructor() {
@@ -98,7 +99,7 @@ class App {
         this.loadingBar = new LoadingBar(loader);
 
         // TASK 2.1.1 Create empty array for storing interacting meshes
-
+        this.interactables = [];
         const self = this;
 
         // Load a glTF resource
@@ -120,6 +121,7 @@ class App {
                             child.scale.set(2, 2, 2);
                         } else {
                             // TASK 2.1.2 Check if mesh is interacting
+                            self.storeIfInteractingMesh.bind(self, child).call()
 
                             child.castShadow = false;
                             child.receiveShadow = true;
@@ -148,8 +150,40 @@ class App {
 
     // TASK 2.1.3 Store if object is interacting meshes
     storeIfInteractingMesh(mesh) {
+        if (!mesh.isMesh) return
 
+        if (mesh.name == "SD_Prop_Chest_Skull_Lid_01") {
+            this.interactables.push(new Interactable(mesh, {
+                mode: 'tweens',
+                tweens: [
+                    {
+                        target: mesh.quaternion,
+                        channel: 'x',
+                        start: 0,
+                        end: -0.7,
+                        duration: 1
+                    }
+                ]
+            }));
+
+
+        } else if (mesh.name == "Door_1") {
+            this.interactables.push(new Interactable(mesh, {
+                mode: 'tweens',
+                tweens: [
+                    {
+                        target: mesh.quaternion,
+                        channel: 'z',
+                        start: 0,
+                        end: 0.6,
+                        duration: 1
+                    }
+                ]
+            }));
+        }
     }
+
+
 
     initGame() {
         this.player = this.createPlayer();
@@ -167,7 +201,13 @@ class App {
         const self = this;
 
         // TASK 1.1 Create teleports and add them to the scene
-
+this.teleports=[];
+locations.forEach(location=> {
+    const teleport=new TeleportMesh();
+    teleport.position.copy(location);
+    self.scene.add(teleport);
+    self.teleports.push(teleport);
+        })
         this.setupXR();
 
         this.loading = false;
@@ -223,11 +263,16 @@ class App {
         function onSelectStart() {
             this.userData.selectPressed = true;
             // TASK 1.6 On select press move to the selected teleport
-            if (false) {
+            if (this.userData.teleport) {
+                self.player.object.position.copy(this.userData.teleport.position);
+                self.teleports.forEach(teleport => teleport.fadeOut(0.5));
 
             }
             // TASK 2.5 Call play for the interactable
+            else if (this.userData.interactable) {
+                this.userData.interactable.play() ;
 
+            }
             else if (this.userData.marker.visible) {
                 const pos = this.userData.marker.position;
                 console.log(`${pos.x.toFixed(3)}, ${pos.y.toFixed(3)}, ${pos.z.toFixed(3)}`);
@@ -241,13 +286,13 @@ class App {
         function onSqueezeStart() {
             this.userData.squeezePressed = true;
             // TASK 1.2 Display teleports when squeeze button is pressed
-
+            self.teleports.forEach(teleport => teleport.fadeIn(1));
         }
 
         function onSqueezeEnd() {
             this.userData.squeezePressed = false;
             // TASK 1.3 Hide teleports when squeeze button is released
-
+            self.teleports.forEach(teleport => teleport.fadeOut(1));
         }
 
         const btn = new VRButton(this.renderer);
@@ -263,10 +308,11 @@ class App {
 
         this.collisionObjects = [this.navmesh];
         // TASK 1.5.1 Add teleports cylinders to the collisionObjects
-
+        this.teleports.forEach(teleport =>
+            self.collisionObjects.push(teleport.children[0]));
 
         // TASK 2.3 Add meshes to the list of collisionObjects for selecting them by the controllers.
-
+        this.interactables.forEach( interactable => self.collisionObjects.push(interactable.mesh));
 
     }
 
@@ -298,9 +344,22 @@ class App {
                 marker.visible = true;
             }
             // TASK 1.5.2 Highlight and store intersected teleport
-
+            else if (intersect.object.parent
+                && intersect.object.parent instanceof TeleportMesh) {
+                intersect.object.parent.selected = true;
+                controller.userData.teleport = intersect.object.parent;
+            }
             // TASK 2.4 Add the selected interactable to the controller's userData object.
+            else {
+                const selecctedInteractableMesh = this.interactables.filter(interactable =>
+                    interactable.mesh == intersect.object);
 
+
+                if (selecctedInteractableMesh.length > 0) {
+                    controller.userData.interactable = selecctedInteractableMesh[0];
+                }
+
+            }
 
         }
 
@@ -346,14 +405,17 @@ class App {
 
         if (this.renderer.xr.isPresenting) {
             // TASK 1.4 Redraw teleports with update method
+            this.teleports.forEach(teleport=> {
+                teleport.selected=false;
+                teleport.update();
 
+            });
 
             this.controllers.forEach(controller => {
                 self.intersectObjects(controller);
             })
-
             // TASK 2.2 Update interactable meshes
-
+            this.interactables.forEach(interactable =>interactable.update(dt));
 
             this.player.update(dt);
         }
